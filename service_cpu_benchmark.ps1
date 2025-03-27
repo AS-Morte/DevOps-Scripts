@@ -6,6 +6,7 @@ Ver:    1.1
 Shell: PowerShell v5.1.2
 Desc:   Calculates average cpu utilization for remote servers.
         Requires server.txt file as ref. Uses Jobs for parallel processing.
+        For Windows Servers
 
 #>
 param(
