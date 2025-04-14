@@ -1,0 +1,53 @@
+# Array of computer names
+$computers = @(
+    "Server-01",
+    "Server-02"
+)
+
+# Registry key path
+$registryPath = "SOFTWARE\Citrix\HdxMediastream\WebBrowserRedirectionBlacklist"
+
+
+# Function to query registry remotely
+function Get-RemoteRegistryValue {
+    param (
+        [string]$ComputerName,
+        [string]$RegistryPath
+    )
+
+    try {
+        # Attempt to connect to the remote computer
+        $registryValue = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
+            param($path)
+            try {
+                # Get the registry key value
+                $value = Get-ItemProperty -Path "HKLM:\$path" -ErrorAction Stop
+                return $value.'(default)'
+            }
+            catch {
+                return "Registry key not found"
+            }
+        } -ArgumentList $RegistryPath -ErrorAction Stop
+
+        return $registryValue
+    }
+    catch {
+        return "Machine not found or inaccessible"
+    }
+}
+
+# Create an array to store results
+$results = @()
+
+# Iterate through computers and query registry
+foreach ($computer in $computers) {
+    $registryValue = Get-RemoteRegistryValue -ComputerName $computer -RegistryPath $registryPath
+    
+    $results += [PSCustomObject]@{
+        Server = $computer
+        WebBrowserRedirectionBlacklist = $registryValue
+    }
+}
+
+# Display results in a table
+$results | Format-Table -AutoSize
