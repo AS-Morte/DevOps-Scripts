@@ -1,5 +1,13 @@
-﻿# PowerShell script to get the reason for the last server shutdown
-# Save this as Get-LastShutdownReason.ps1
+﻿<#
+
+Date:   2-3-2025
+Auth:   A.S Morte
+Ver:    2
+Shell: PowerShell v5.1.2
+Desc:   Batch GP Update. Updates on 5 Servers at once.
+        Execute as: .\get_server_shutdown.ps1 -ComputerName Server-01
+
+#>
 
 param(
     [Parameter(Mandatory=$false)]
