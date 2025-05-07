@@ -10,7 +10,7 @@ Desc:   Batch GP Update. Updates on 5 Servers at once.
 #>
 
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
     [string]$ComputerName = $env:COMPUTERNAME
 )
 
@@ -21,7 +21,7 @@ Write-Output "=================================================="
 # Find the last shutdown event
 $shutdownEvents = Get-WinEvent -FilterHashtable @{
     LogName = 'System'
-    Id = 1074, 6006, 6008, 41, 1076
+    Id      = 1074, 6006, 6008, 41, 1076
 } -MaxEvents 50 -ErrorAction SilentlyContinue -ComputerName $ComputerName
 
 $lastShutdownEvent = $null
@@ -91,7 +91,7 @@ if ($lastShutdownEvent -eq $null) {
     # Try checking for more generic restart events
     $restartEvents = Get-WinEvent -FilterHashtable @{
         LogName = 'System'
-        Id = 6005, 6013
+        Id      = 6005, 6013
     } -MaxEvents 10 -ErrorAction SilentlyContinue -ComputerName $ComputerName
     
     if ($restartEvents -and $restartEvents.Count -gt 0) {
@@ -99,7 +99,8 @@ if ($lastShutdownEvent -eq $null) {
         $time = $lastRestartEvent.TimeCreated
         Write-Output "Found system start event at: $shutdownTime"
         Write-Output "The system was started, but the reason for the previous shutdown couldn't be determined."
-    } else {
+    }
+    else {
         Write-Output "No system restart events found either. Event logs may have been cleared."
         Exit
     }

@@ -1,0 +1,78 @@
+# Script to set R/W/X permissions for Domain\Account to a Fodler Path on windows.
+# Note: This script needs to be run with Administrator privileges
+
+# Define variables
+$folderPath = "F:\DATA"
+$domain = "DOMAIN.COM"
+$username = "CXXXXXSearchAdmin"
+$account = "$domain\$username"
+
+# Initialize counters
+$errorCount = 0
+$successCount = 0
+
+try {
+    # Get all items (both files and folders)
+    Write-Host "Finding all files and folders. This may take a while..." -ForegroundColor Yellow
+    $allItems = @($folderPath) + (Get-ChildItem -Path $folderPath -Recurse -Force -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
+    $totalItems = $allItems.Count
+    $processedItems = 0
+    
+    Write-Host "Found $totalItems items to process." -ForegroundColor Yellow
+    
+    # Process each item
+    foreach ($item in $allItems) {
+        try {
+            # Get current ACL
+            $acl = Get-Acl -Path $item -ErrorAction Stop
+            
+            # Create appropriate access rule based on item type
+            $itemPermissions = [System.Security.AccessControl.FileSystemRights]::ReadAndExecute -bor [System.Security.AccessControl.FileSystemRights]::Write
+            $accessControl = [System.Security.AccessControl.AccessControlType]::Allow
+            
+            # Check if it's a directory
+            if (Test-Path -Path $item -PathType Container) {
+                # For folders, include inheritance flags
+                $inheritanceFlags = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+                $propagationFlags = [System.Security.AccessControl.PropagationFlags]::None
+                $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($account, $itemPermissions, $inheritanceFlags, $propagationFlags, $accessControl)
+            }
+            else {
+                # For files, don't use inheritance flags
+                $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($account, $itemPermissions, $accessControl)
+            }
+            
+            # Add the new rule without modifying any other settings
+            $acl.AddAccessRule($accessRule)
+            Set-Acl -Path $item -AclObject $acl -ErrorAction Stop
+            
+            # Update success counter
+            $successCount++
+            
+            # Update progress
+            $processedItems++
+            $percentComplete = [int](($processedItems / $totalItems) * 100)
+            Write-Progress -Activity "Applying Permissions" -Status "$percentComplete% Complete" -PercentComplete $percentComplete
+        }
+        catch {
+            $errorCount++
+            Write-Host "Error applying permissions to $item : $_" -ForegroundColor Red
+            # Continue with next item
+            continue
+        }
+    }
+    
+    # Summary report
+    Write-Host "Permission application process complete." -ForegroundColor Green
+    Write-Host "Successfully processed: $successCount items" -ForegroundColor Green
+    
+    if ($errorCount -gt 0) {
+        Write-Host "Errors encountered: $errorCount items (skipped)" -ForegroundColor Yellow
+        Write-Host "These errors may be due to access denied issues, locked files, or other permission problems." -ForegroundColor Yellow
+    }
+    
+    Write-Host "Read/Write/Execute permissions for $account have been applied to all accessible items in $folderPath" -ForegroundColor Green
+} 
+catch {
+    Write-Host "Critical error in permission application process: $_" -ForegroundColor Red
+}
